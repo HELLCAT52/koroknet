@@ -1,48 +1,57 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Корочки.есть - Портал онлайн курсов</title>
+    <title>Корочки.есть - Портал онлайн-курсов</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
+    <div class="container container-home">
         <header class="header">
             <div class="logo">
-                <img src="images/image01.webp" alt="Корочки.есть" class="logo-img" onerror="this.src='images/placeholder.png'">
+                <img src="images/image01.webp" alt="Корочки.есть" class="logo-img">
                 <h1>Корочки.есть</h1>
             </div>
-            <p class="tagline">Ваш путь к новым знаниям</p>
-            <div class="user-info" id="userInfo" style="display: none;">
+            <p class="tagline">Курсы с заявками, модерацией отзывов и личным кабинетом</p>
+
+            <div class="user-info" id="userInfo" style="display:none;">
                 <span id="userName"></span>
                 <button class="logout-btn" onclick="logout()">Выйти</button>
             </div>
         </header>
 
-        <!-- Слайдер -->
+        <nav class="nav-menu nav-menu-sticky">
+            <a class="nav-link active" href="index.html">Главная</a>
+            <a class="nav-link" href="reviews.html">Отзывы</a>
+            <a class="nav-link" href="login.html" id="loginLink">Вход</a>
+            <a class="nav-link" href="register.html" id="registerLink">Регистрация</a>
+            <a class="nav-link" href="applications.html" id="cabinetLink" style="display:none;">Личный кабинет</a>
+            <a class="nav-link" href="admin.html" id="adminLink" style="display:none;">Админка</a>
+        </nav>
+
         <div class="slider-container">
             <div class="slider">
                 <div class="slide active">
-                    <img src="images/image06.jpg" alt="Образование" onerror="this.src='images/placeholder.jpg'">
-                    <div class="slide-caption">Качественное образование</div>
+                    <img src="images/image06.jpg" alt="Обучение онлайн">
+                    <div class="slide-caption">Учитесь в удобном темпе и оформляйте заявки онлайн</div>
                 </div>
                 <div class="slide">
-                    <img src="images/image08.webp" alt="Курсы" onerror="this.src='images/placeholder.jpg'">
-                    <div class="slide-caption">Современные программы</div>
+                    <img src="images/image08.webp" alt="Современные программы">
+                    <div class="slide-caption">Современные программы и прозрачный процесс обучения</div>
                 </div>
                 <div class="slide">
-                    <img src="images/image11.jpg" alt="Диплом" onerror="this.src='images/placeholder.jpg'">
-                    <div class="slide-caption">Официальные документы</div>
+                    <img src="images/image11.jpg" alt="Итоговый документ">
+                    <div class="slide-caption">После завершения обучения вы можете оставить отзыв</div>
                 </div>
                 <div class="slide">
-                    <img src="images/image13.webp" alt="Поддержка" onerror="this.src='images/placeholder.jpg'">
-                    <div class="slide-caption">Профессиональные преподаватели</div>
+                    <img src="images/image13.webp" alt="Поддержка пользователей">
+                    <div class="slide-caption">Каждый отзыв проходит модерацию администратора</div>
                 </div>
             </div>
-            <button class="slider-btn prev" onclick="changeSlide(-1)">❮</button>
-            <button class="slider-btn next" onclick="changeSlide(1)">❯</button>
+            <button class="slider-btn prev" onclick="changeSlide(-1)">‹</button>
+            <button class="slider-btn next" onclick="changeSlide(1)">›</button>
             <div class="slider-dots"></div>
         </div>
 
@@ -51,48 +60,86 @@
             <button class="btn-secondary" onclick="window.location.href='register.html'">Регистрация</button>
         </div>
 
-        <div class="features">
-            <div class="feature-card">
+        <section class="features">
+            <article class="feature-card">
                 <div class="feature-icon">📚</div>
-                <h3>Онлайн курсы</h3>
-                <p>Учитесь в удобное время</p>
+                <h3>Каталог курсов</h3>
+                <p>Курсы добавляет администратор, выбор доступен прямо в карточках заявки.</p>
+            </article>
+            <article class="feature-card">
+                <div class="feature-icon">🗓️</div>
+                <h3>Календарь заявок</h3>
+                <p>Дата начала выбирается в календаре, проверяется и на клиенте, и на сервере.</p>
+            </article>
+            <article class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3>Безопасность</h3>
+                <p>Подготовленные SQL-запросы, серверная валидация, rate-limit и экранирование XSS.</p>
+            </article>
+        </section>
+
+        <section class="content">
+            <div class="section-header">
+                <h2>Опубликованные отзывы пользователей</h2>
+                <a href="reviews.html" class="btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center;">Все отзывы</a>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">🎓</div>
-                <h3>Документ об образовании</h3>
-                <p>Получите удостоверение</p>
+            <div id="latestReviews" class="review-grid">
+                <div class="loading">Загрузка отзывов...</div>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">💳</div>
-                <h3>Удобная оплата</h3>
-                <p>Наличные или перевод</p>
-            </div>
-        </div>
+        </section>
     </div>
 
     <script src="js/main.js"></script>
     <script>
-        // Проверка авторизации
-        if (sessionStorage.getItem('user_id')) {
+        async function loadLatestReviews() {
+            const container = document.getElementById('latestReviews');
+
+            try {
+                const result = await apiRequest('api/reviews.php', 'GET');
+                const reviews = result.data || [];
+
+                if (!reviews.length) {
+                    container.innerHTML = '<div class="empty-state">Пока нет опубликованных отзывов.</div>';
+                    return;
+                }
+
+                container.innerHTML = reviews.map((review) => `
+                    <article class="review-card">
+                        <h3>${escapeHtml(review.course_name)}</h3>
+                        <p class="review-rating">Оценка: ${'★'.repeat(Math.max(1, Math.min(5, Number(review.rating) || 0)))} (${Number(review.rating) || 0}/5)</p>
+                        <p>${escapeHtml(review.content)}</p>
+                        <p class="text-muted">Автор: ${escapeHtml(review.full_name)}</p>
+                        <p class="text-muted">Дата: ${formatDateTime(review.created_at)}</p>
+                    </article>
+                `).join('');
+            } catch (error) {
+                container.innerHTML = '<div class="empty-state">Не удалось загрузить отзывы.</div>';
+            }
+        }
+
+        function initHeaderBySession() {
+            const userId = sessionStorage.getItem('user_id');
+            const userRole = sessionStorage.getItem('user_role');
+
+            if (!userId) {
+                return;
+            }
+
             document.getElementById('authButtons').style.display = 'none';
+            document.getElementById('loginLink').style.display = 'none';
+            document.getElementById('registerLink').style.display = 'none';
+            document.getElementById('cabinetLink').style.display = userRole === 'admin' ? 'none' : 'inline-flex';
+            document.getElementById('adminLink').style.display = userRole === 'admin' ? 'inline-flex' : 'none';
+
             const userInfo = document.getElementById('userInfo');
             userInfo.style.display = 'flex';
-            document.getElementById('userName').textContent = `Привет, ${sessionStorage.getItem('full_name') || sessionStorage.getItem('username')}!`;
-            
-            // Добавляем кнопку перехода в личный кабинет
-            const dashboardBtn = document.createElement('button');
-            dashboardBtn.className = 'btn-primary';
-            dashboardBtn.textContent = 'Мои заявки';
-            dashboardBtn.style.marginTop = '10px';
-            dashboardBtn.onclick = () => {
-                if (sessionStorage.getItem('user_role') === 'admin') {
-                    window.location.href = 'admin.html';
-                } else {
-                    window.location.href = 'applications.html';
-                }
-            };
-            document.querySelector('.auth-buttons').after(dashboardBtn);
+            document.getElementById('userName').textContent = `Пользователь: ${sessionStorage.getItem('full_name') || sessionStorage.getItem('username')}`;
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initHeaderBySession();
+            loadLatestReviews();
+        });
     </script>
 </body>
 </html>

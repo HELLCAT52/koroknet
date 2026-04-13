@@ -1,251 +1,374 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Панель администратора - Корочки.есть</title>
+    <title>Админ-панель - Корочки.есть</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
-        <header class="header admin-header">
+        <header class="header">
             <div class="logo">
                 <img src="images/image01.webp" alt="Корочки.есть" class="logo-img">
                 <h1>Корочки.есть</h1>
             </div>
             <div class="user-info">
-                <span>Администратор</span>
+                <span>Роль: администратор</span>
                 <button class="logout-btn" onclick="logout()">Выйти</button>
             </div>
         </header>
 
+        <nav class="nav-menu">
+            <a href="index.html" class="nav-link">Главная</a>
+            <a href="admin.html" class="nav-link active">Админка</a>
+            <a href="reviews.html" class="nav-link">Отзывы</a>
+        </nav>
+
         <div class="admin-panel">
-            <div class="admin-stats" id="stats">
-                <div class="stat-card">
-                    <div class="stat-value" id="totalCount">0</div>
-                    <div class="stat-label">Всего заявок</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="newCount">0</div>
-                    <div class="stat-label">Новые</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="progressCount">0</div>
-                    <div class="stat-label">В обучении</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="completedCount">0</div>
-                    <div class="stat-label">Завершены</div>
-                </div>
+            <div class="tabs">
+                <button type="button" class="tab-btn active" data-tab="applicationsTab">Заявки</button>
+                <button type="button" class="tab-btn" data-tab="reviewsTab">Модерация отзывов</button>
+                <button type="button" class="tab-btn" data-tab="coursesTab">Курсы</button>
             </div>
 
-            <div class="admin-filters">
-                <input type="text" id="searchInput" placeholder="Поиск по ФИО или курсу..." class="search-input">
-                <select id="statusFilter" class="filter-select">
-                    <option value="all">Все статусы</option>
-                    <option value="new">Новые</option>
-                    <option value="in_progress">Идет обучение</option>
-                    <option value="completed">Обучение завершено</option>
-                </select>
-            </div>
+            <section id="applicationsTab" class="tab-panel active">
+                <div class="admin-stats" id="stats">
+                    <article class="stat-card"><div class="stat-value" id="totalCount">0</div><div class="stat-label">Всего</div></article>
+                    <article class="stat-card"><div class="stat-value" id="newCount">0</div><div class="stat-label">Новые</div></article>
+                    <article class="stat-card"><div class="stat-value" id="progressCount">0</div><div class="stat-label">В обучении</div></article>
+                    <article class="stat-card"><div class="stat-value" id="completedCount">0</div><div class="stat-label">Завершены</div></article>
+                </div>
 
-            <div class="table-container">
-                <table id="applicationsTable">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Пользователь</th>
-                            <th>Курс</th>
-                            <th>Дата начала</th>
-                            <th>Способ оплаты</th>
-                            <th>Статус</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody id="applicationsTableBody">
-                        <tr><td colspan="7" style="text-align: center;">Загрузка...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+                <div class="admin-filters">
+                    <input id="searchInput" class="search-input" type="text" placeholder="Поиск по ФИО или курсу">
+                    <select id="statusFilter" class="filter-select">
+                        <option value="all">Все статусы</option>
+                        <option value="new">Новые</option>
+                        <option value="in_progress">Идет обучение</option>
+                        <option value="completed">Завершено</option>
+                    </select>
+                </div>
 
-            <div class="pagination" id="pagination"></div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Пользователь</th>
+                                <th>Курс</th>
+                                <th>Начало</th>
+                                <th>Создана</th>
+                                <th>Оплата</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody id="applicationsTableBody">
+                            <tr><td colspan="7">Загрузка...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pagination" id="pagination"></div>
+            </section>
+
+            <section id="reviewsTab" class="tab-panel">
+                <div class="section-header">
+                    <h2>Отзывы на модерации</h2>
+                    <button type="button" class="btn-refresh" onclick="loadPendingReviews()">Обновить</button>
+                </div>
+                <div id="pendingReviews" class="admin-review-list">
+                    <div class="loading">Загрузка...</div>
+                </div>
+            </section>
+
+            <section id="coursesTab" class="tab-panel">
+                <div class="section-header">
+                    <h2>Добавление нового курса</h2>
+                </div>
+                <form id="courseForm" novalidate>
+                    <div class="form-group">
+                        <label for="courseName">Название курса</label>
+                        <input id="courseName" name="name" type="text" required>
+                        <div id="nameError" class="error-message">Введите название курса</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="courseDescription">Описание</label>
+                        <textarea id="courseDescription" name="description" required></textarea>
+                        <div id="descriptionError" class="error-message">Введите описание курса</div>
+                    </div>
+                    <button type="submit" class="btn-submit">Добавить курс</button>
+                </form>
+
+                <div class="section-header" style="margin-top:16px;">
+                    <h3>Текущие курсы</h3>
+                    <button type="button" class="btn-refresh" onclick="loadCourses()">Обновить</button>
+                </div>
+                <div id="coursesList" class="course-admin-list"></div>
+            </section>
         </div>
     </div>
 
     <script src="js/main.js"></script>
     <script>
-        let allApplications = [];
-        let currentPage = 1;
-        const itemsPerPage = 10;
-
-        // Проверка прав администратора
-        if (!sessionStorage.getItem('user_id') || sessionStorage.getItem('user_role') !== 'admin') {
+        if (sessionStorage.getItem('user_role') !== 'admin') {
             window.location.href = 'login.html';
         }
 
-        // Загрузка всех заявок
-        async function loadApplications() {
-            try {
-                const result = await apiRequest('api/admin/applications.php', 'GET');
-                
-                if (result.success) {
-                    allApplications = result.data;
-                    updateStats();
-                    filterAndRender();
-                } else {
-                    showNotification('Ошибка загрузки заявок', 'error');
-                }
-            } catch (error) {
-                showNotification('Ошибка подключения к серверу', 'error');
-            }
+        let allApplications = [];
+        let filteredApplications = [];
+        let currentPage = 1;
+        const pageSize = 10;
+
+        function initTabs() {
+            document.querySelectorAll('.tab-btn').forEach((button) => {
+                button.addEventListener('click', () => {
+                    document.querySelectorAll('.tab-btn').forEach((btn) => btn.classList.remove('active'));
+                    document.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.remove('active'));
+
+                    button.classList.add('active');
+                    document.getElementById(button.dataset.tab).classList.add('active');
+                });
+            });
         }
 
-        // Обновление статистики
         function updateStats() {
-            const total = allApplications.length;
-            const newCount = allApplications.filter(app => app.status === 'new').length;
-            const progressCount = allApplications.filter(app => app.status === 'in_progress').length;
-            const completedCount = allApplications.filter(app => app.status === 'completed').length;
-            
-            document.getElementById('totalCount').textContent = total;
-            document.getElementById('newCount').textContent = newCount;
-            document.getElementById('progressCount').textContent = progressCount;
-            document.getElementById('completedCount').textContent = completedCount;
+            document.getElementById('totalCount').textContent = allApplications.length;
+            document.getElementById('newCount').textContent = allApplications.filter((item) => item.status === 'new').length;
+            document.getElementById('progressCount').textContent = allApplications.filter((item) => item.status === 'in_progress').length;
+            document.getElementById('completedCount').textContent = allApplications.filter((item) => item.status === 'completed').length;
         }
 
-        // Фильтрация и отображение
-        function filterAndRender() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const statusFilter = document.getElementById('statusFilter').value;
-            
-            let filtered = allApplications;
-            
-            // Фильтр по статусу
-            if (statusFilter !== 'all') {
-                filtered = filtered.filter(app => app.status === statusFilter);
-            }
-            
-            // Поиск по ФИО и курсу
-            if (searchTerm) {
-                filtered = filtered.filter(app => 
-                    app.full_name.toLowerCase().includes(searchTerm) ||
-                    app.course_name.toLowerCase().includes(searchTerm)
-                );
-            }
-            
-            renderTable(filtered);
+        function applyFilters() {
+            const search = document.getElementById('searchInput').value.trim().toLowerCase();
+            const status = document.getElementById('statusFilter').value;
+
+            filteredApplications = allApplications.filter((item) => {
+                const matchesStatus = status === 'all' || item.status === status;
+                const haystack = `${item.full_name || ''} ${item.course_name || ''}`.toLowerCase();
+                const matchesSearch = !search || haystack.includes(search);
+                return matchesStatus && matchesSearch;
+            });
+
+            currentPage = 1;
+            renderApplicationsTable();
         }
 
-        // Отображение таблицы с пагинацией
-        function renderTable(applications) {
+        function renderApplicationsTable() {
             const tbody = document.getElementById('applicationsTableBody');
-            const start = (currentPage - 1) * itemsPerPage;
-            const end = start + itemsPerPage;
-            const pageItems = applications.slice(start, end);
-            
-            if (pageItems.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Нет заявок</td></tr>';
+
+            if (!filteredApplications.length) {
+                tbody.innerHTML = '<tr><td colspan="7">Заявки не найдены</td></tr>';
                 document.getElementById('pagination').innerHTML = '';
                 return;
             }
-            
-            tbody.innerHTML = pageItems.map(app => `
-                <tr class="fade-in">
-                    <td>${app.id}</td>
-                    <td>${escapeHtml(app.full_name)}<br><small>${escapeHtml(app.username)}</small></td>
+
+            const start = (currentPage - 1) * pageSize;
+            const pageItems = filteredApplications.slice(start, start + pageSize);
+
+            tbody.innerHTML = pageItems.map((app) => `
+                <tr>
+                    <td>${Number(app.id)}</td>
+                    <td><strong>${escapeHtml(app.full_name)}</strong><br><span class="text-muted">${escapeHtml(app.username)}</span></td>
                     <td>${escapeHtml(app.course_name)}</td>
-                    <td>${formatDate(app.start_date)}</td>
-                    <td>${getPaymentMethodText(app.payment_method)}</td>
+                    <td>${escapeHtml(app.start_date_formatted || formatDate(app.start_date))}</td>
+                    <td>${escapeHtml(app.created_at_formatted || formatDateTime(app.created_at))}</td>
+                    <td>${escapeHtml(getPaymentMethodText(app.payment_method))}</td>
                     <td>
-                        <select class="status-select status-${app.status}" 
-                                onchange="updateStatus(${app.id}, this.value)">
+                        <select class="status-select" onchange="updateStatus(${Number(app.id)}, this.value)">
                             <option value="new" ${app.status === 'new' ? 'selected' : ''}>Новая</option>
                             <option value="in_progress" ${app.status === 'in_progress' ? 'selected' : ''}>Идет обучение</option>
-                            <option value="completed" ${app.status === 'completed' ? 'selected' : ''}>Обучение завершено</option>
+                            <option value="completed" ${app.status === 'completed' ? 'selected' : ''}>Завершено</option>
                         </select>
-                    </td>
-                    <td>
-                        <button class="btn-view" onclick="viewApplicationDetails(${app.id})">Просмотр</button>
                     </td>
                 </tr>
             `).join('');
-            
-            // Пагинация
-            const totalPages = Math.ceil(applications.length / itemsPerPage);
-            renderPagination(totalPages);
+
+            renderPagination();
         }
 
-        // Отображение пагинации
-        function renderPagination(totalPages) {
-            const paginationDiv = document.getElementById('pagination');
-            if (totalPages <= 1) {
-                paginationDiv.innerHTML = '';
+        function renderPagination() {
+            const pageCount = Math.ceil(filteredApplications.length / pageSize);
+            const root = document.getElementById('pagination');
+
+            if (pageCount <= 1) {
+                root.innerHTML = '';
                 return;
             }
-            
+
             let html = '<div class="pagination-controls">';
-            html += `<button class="page-btn" onclick="changePage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>«</button>`;
-            
-            for (let i = 1; i <= totalPages; i++) {
-                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
-                    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
-                } else if (i === currentPage - 3 || i === currentPage + 3) {
-                    html += '<span class="page-dots">...</span>';
-                }
+            html += `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">‹</button>`;
+            for (let i = 1; i <= pageCount; i += 1) {
+                html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
             }
-            
-            html += `<button class="page-btn" onclick="changePage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>»</button>`;
+            html += `<button class="page-btn" ${currentPage === pageCount ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">›</button>`;
             html += '</div>';
-            
-            paginationDiv.innerHTML = html;
+
+            root.innerHTML = html;
         }
 
-        function changePage(page) {
+        async function changePage(page) {
+            const pageCount = Math.ceil(filteredApplications.length / pageSize);
+            if (page < 1 || page > pageCount) {
+                return;
+            }
             currentPage = page;
-            filterAndRender();
+            renderApplicationsTable();
         }
 
-        // Обновление статуса
-        async function updateStatus(applicationId, newStatus) {
+        async function loadApplications() {
+            const result = await apiRequest('api/admin/applications.php', 'GET');
+            allApplications = result.data || [];
+            filteredApplications = [...allApplications];
+            updateStats();
+            renderApplicationsTable();
+        }
+
+        async function updateStatus(id, status) {
             try {
-                const result = await apiRequest('api/admin/applications.php', 'PUT', {
-                    id: applicationId,
-                    status: newStatus
-                });
-                
-                if (result.success) {
-                    showNotification('Статус заявки обновлен', 'success');
-                    loadApplications(); // Перезагружаем список
-                } else {
-                    showNotification('Ошибка при обновлении статуса', 'error');
-                }
+                await apiRequest('api/admin/applications.php', 'PUT', { id, status });
+                showNotification('Статус обновлен');
+                await loadApplications();
+                applyFilters();
             } catch (error) {
-                showNotification('Ошибка подключения', 'error');
+                showNotification(error.payload?.message || 'Не удалось обновить статус', 'error');
             }
         }
 
-        // Просмотр деталей заявки
-        function viewApplicationDetails(applicationId) {
-            const app = allApplications.find(a => a.id === applicationId);
-            if (app) {
-                showNotification(`Заявка #${app.id}: ${app.course_name} - ${app.full_name}`, 'info');
+        async function loadPendingReviews() {
+            const container = document.getElementById('pendingReviews');
+            container.innerHTML = '<div class="loading">Загрузка...</div>';
+
+            try {
+                const result = await apiRequest('api/reviews.php?scope=pending', 'GET');
+                const reviews = result.data || [];
+
+                if (!reviews.length) {
+                    container.innerHTML = '<div class="empty-state">Нет отзывов на модерации.</div>';
+                    return;
+                }
+
+                container.innerHTML = reviews.map((review) => `
+                    <article class="admin-review-card">
+                        <div class="section-header">
+                            <h3>${escapeHtml(review.course_name)}</h3>
+                            <span class="review-status-badge review-status-pending">На модерации</span>
+                        </div>
+                        <p><strong>Пользователь:</strong> ${escapeHtml(review.full_name)} (${escapeHtml(review.username)})</p>
+                        <p><strong>Оценка:</strong> ${Number(review.rating) || 0}/5</p>
+                        <p>${escapeHtml(review.content)}</p>
+                        <p class="text-muted">Отправлен: ${formatDateTime(review.created_at)}</p>
+                        <div class="application-actions">
+                            <button type="button" class="btn-approve" onclick="moderateReview(${Number(review.id)}, 'approved')">Опубликовать</button>
+                            <button type="button" class="btn-reject" onclick="moderateReview(${Number(review.id)}, 'rejected')">Отклонить</button>
+                        </div>
+                    </article>
+                `).join('');
+            } catch (error) {
+                container.innerHTML = '<div class="empty-state">Не удалось загрузить отзывы.</div>';
             }
         }
 
-        // События фильтров
-        document.getElementById('searchInput').addEventListener('input', () => {
-            currentPage = 1;
-            filterAndRender();
-        });
-        
-        document.getElementById('statusFilter').addEventListener('change', () => {
-            currentPage = 1;
-            filterAndRender();
+        async function moderateReview(reviewId, status) {
+            try {
+                await apiRequest('api/reviews.php', 'PUT', {
+                    review_id: reviewId,
+                    status,
+                    moderation_note: status === 'rejected' ? 'Пожалуйста, уточните детали обучения и отправьте отзыв повторно.' : ''
+                });
+
+                showNotification(status === 'approved' ? 'Отзыв опубликован' : 'Публикация отзыва отклонена');
+                await loadPendingReviews();
+            } catch (error) {
+                showNotification(error.payload?.message || 'Не удалось обработать отзыв', 'error');
+            }
+        }
+
+        async function loadCourses() {
+            const container = document.getElementById('coursesList');
+            container.innerHTML = '<div class="loading">Загрузка...</div>';
+
+            try {
+                const result = await apiRequest('api/admin/courses.php', 'GET');
+                const courses = result.data || [];
+
+                if (!courses.length) {
+                    container.innerHTML = '<div class="empty-state">Курсы пока не добавлены.</div>';
+                    return;
+                }
+
+                container.innerHTML = courses.map((course) => `
+                    <article class="course-admin-card">
+                        <h3>${escapeHtml(course.name)}</h3>
+                        <p>${escapeHtml(course.description || 'Описание отсутствует')}</p>
+                    </article>
+                `).join('');
+            } catch (error) {
+                container.innerHTML = '<div class="empty-state">Не удалось загрузить курсы.</div>';
+            }
+        }
+
+        document.getElementById('courseForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const form = event.currentTarget;
+            clearFieldErrors(form);
+
+            const payload = {
+                name: document.getElementById('courseName').value.trim(),
+                description: document.getElementById('courseDescription').value.trim()
+            };
+
+            const localErrors = {};
+            if (payload.name.length < 3) {
+                localErrors.name = 'Название курса должно содержать минимум 3 символа';
+            }
+            if (payload.description.length < 10) {
+                localErrors.description = 'Описание курса должно содержать минимум 10 символов';
+            }
+
+            if (Object.keys(localErrors).length > 0) {
+                applyFieldErrors(form, localErrors);
+                return;
+            }
+
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Добавление...';
+
+            try {
+                const response = await apiRequest('api/admin/courses.php', 'POST', payload);
+                showNotification(response.message || 'Курс добавлен');
+                form.reset();
+                await loadCourses();
+            } catch (error) {
+                if (error.payload?.field_errors) {
+                    applyFieldErrors(form, error.payload.field_errors);
+                }
+                showNotification(error.payload?.message || 'Не удалось добавить курс', 'error');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Добавить курс';
+            }
         });
 
-        // Загрузка при открытии
-        loadApplications();
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('statusFilter').addEventListener('change', applyFilters);
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            initTabs();
+            try {
+                await Promise.all([loadApplications(), loadPendingReviews(), loadCourses()]);
+            } catch (error) {
+                showNotification('Не удалось загрузить данные админки', 'error');
+            }
+        });
+
+        window.updateStatus = updateStatus;
+        window.changePage = changePage;
+        window.moderateReview = moderateReview;
+        window.loadPendingReviews = loadPendingReviews;
+        window.loadCourses = loadCourses;
     </script>
 </body>
 </html>

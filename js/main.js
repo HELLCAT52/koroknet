@@ -1,167 +1,179 @@
-// Слайдер
-let currentSlide = 0;
+﻿let currentSlide = 0;
 let slides = [];
-let dotsContainer = null;
-let slideInterval = null;
+let sliderInterval = null;
 
 function initSlider() {
-    slides = document.querySelectorAll('.slide');
-    dotsContainer = document.querySelector('.slider-dots');
-    
-    if (!slides.length || !dotsContainer) return;
-    
+    slides = Array.from(document.querySelectorAll('.slide'));
+    const dotsContainer = document.querySelector('.slider-dots');
+
+    if (!slides.length || !dotsContainer) {
+        return;
+    }
+
     dotsContainer.innerHTML = '';
-    
+
     slides.forEach((_, index) => {
-        const dot = document.createElement('div');
-        dot.classList.add('dot');
-        if (index === 0) dot.classList.add('active');
-        dot.onclick = () => goToSlide(index);
+        const dot = document.createElement('button');
+        dot.type = 'button';
+        dot.className = `dot ${index === 0 ? 'active' : ''}`;
+        dot.addEventListener('click', () => goToSlide(index));
         dotsContainer.appendChild(dot);
     });
-    
-    if (slideInterval) {
-        clearInterval(slideInterval);
+
+    if (sliderInterval) {
+        clearInterval(sliderInterval);
     }
-    
-    slideInterval = setInterval(() => {
-        changeSlide(1);
-    }, 3000);
+
+    sliderInterval = setInterval(() => changeSlide(1), 5000);
 }
 
 function changeSlide(direction) {
-    if (!slides.length) return;
-    
-    currentSlide += direction;
-    if (currentSlide >= slides.length) currentSlide = 0;
-    if (currentSlide < 0) currentSlide = slides.length - 1;
-    goToSlide(currentSlide);
+    if (!slides.length) {
+        return;
+    }
+
+    const next = (currentSlide + direction + slides.length) % slides.length;
+    goToSlide(next);
 }
 
 function goToSlide(index) {
-    if (!slides.length) return;
-    
+    if (!slides.length) {
+        return;
+    }
+
     slides.forEach((slide, i) => {
-        slide.classList.remove('active');
-        if (i === index) slide.classList.add('active');
+        slide.classList.toggle('active', i === index);
     });
-    
-    const dots = document.querySelectorAll('.dot');
-    dots.forEach((dot, i) => {
-        if (i === index) {
-            dot.classList.add('active');
-        } else {
-            dot.classList.remove('active');
-        }
+
+    document.querySelectorAll('.dot').forEach((dot, i) => {
+        dot.classList.toggle('active', i === index);
     });
-    
+
     currentSlide = index;
 }
 
-// Валидация форм
 class FormValidator {
     static validateLogin(login) {
-        const regex = /^[a-zA-Z0-9]{6,}$/;
-        return regex.test(login);
+        return /^[A-Za-z0-9_\-.]{6,50}$/.test(login);
     }
-    
+
     static validatePassword(password) {
         return password.length >= 8;
     }
-    
+
     static validateFullName(name) {
-        const regex = /^[а-яА-ЯёЁ\s]+$/u;
-        return regex.test(name);
+        return /^[\p{L}\s\-]{2,100}$/u.test(name);
     }
-    
+
     static validatePhone(phone) {
-        const regex = /^8\(\d{3}\)\d{3}-\d{2}-\d{2}$/;
-        return regex.test(phone);
+        return /^8\(\d{3}\)\d{3}-\d{2}-\d{2}$/.test(phone);
     }
-    
+
     static validateEmail(email) {
-        const regex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
-        return regex.test(email);
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     }
-    
-    static validateDate(date) {
-        const regex = /^\d{2}\.\d{2}\.\d{4}$/;
-        if (!regex.test(date)) return false;
-        
-        const [day, month, year] = date.split('.');
-        const dateObj = new Date(year, month - 1, day);
-        return dateObj.getDate() == day && 
-               dateObj.getMonth() == month - 1 && 
-               dateObj.getFullYear() == year;
+
+    static validateDate(dateValue) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+            return false;
+        }
+
+        const date = new Date(`${dateValue}T00:00:00`);
+        return !Number.isNaN(date.getTime());
     }
 }
 
-// API запросы
 async function apiRequest(url, method = 'GET', data = null) {
     const options = {
-        method: method,
+        method,
+        cache: 'no-store',
         headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
         }
     };
-    
-    if (data) {
+
+    if (data !== null) {
         options.body = JSON.stringify(data);
     }
-    
+
+    const response = await fetch(url, options);
+
+    let payload = null;
     try {
-        const response = await fetch(url, options);
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        return await response.json();
+        payload = await response.json();
     } catch (error) {
-        console.error('API Request Error:', error);
+        throw new Error('Сервер вернул некорректный JSON');
+    }
+
+    if (!response.ok) {
+        const error = new Error(payload.message || `HTTP ${response.status}`);
+        error.payload = payload;
         throw error;
     }
+
+    return payload;
 }
 
-// Уведомления
 function showNotification(message, type = 'success') {
-    const oldNotifications = document.querySelectorAll('.notification');
-    oldNotifications.forEach(notif => notif.remove());
-    
+    const previous = document.querySelector('.notification');
+    if (previous) {
+        previous.remove();
+    }
+
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
-    
-    Object.assign(notification.style, {
-        position: 'fixed',
-        top: '20px',
-        right: '20px',
-        padding: '12px 20px',
-        background: type === 'success' ? '#4caf50' : type === 'error' ? '#f44336' : '#2196f3',
-        color: 'white',
-        borderRadius: '8px',
-        zIndex: '2000',
-        animation: 'slideIn 0.3s ease',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-        fontFamily: 'Inter, sans-serif',
-        fontSize: '14px',
-        fontWeight: '500'
-    });
-    
+
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
+        notification.classList.add('notification-hide');
+        setTimeout(() => notification.remove(), 250);
+    }, 3200);
 }
 
-// Модальные окна
+function clearFieldErrors(formElement) {
+    if (!formElement) {
+        return;
+    }
+
+    formElement.querySelectorAll('.error-message').forEach((element) => {
+        element.style.display = 'none';
+        element.textContent = element.dataset.defaultMessage || element.textContent;
+    });
+
+    formElement.querySelectorAll('.error').forEach((element) => {
+        element.classList.remove('error');
+    });
+}
+
+function applyFieldErrors(formElement, fieldErrors = {}) {
+    if (!formElement || typeof fieldErrors !== 'object' || fieldErrors === null) {
+        return;
+    }
+
+    Object.entries(fieldErrors).forEach(([field, message]) => {
+        const input = formElement.querySelector(`[name="${field}"]`) || formElement.querySelector(`#${field}`);
+        if (input) {
+            input.classList.add('error');
+        }
+
+        const errorNode = formElement.querySelector(`#${field}Error`) || formElement.querySelector(`[data-error-for="${field}"]`);
+        if (errorNode) {
+            if (!errorNode.dataset.defaultMessage) {
+                errorNode.dataset.defaultMessage = errorNode.textContent;
+            }
+            errorNode.textContent = String(message);
+            errorNode.style.display = 'block';
+        }
+    });
+}
+
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
+        document.body.classList.add('modal-open');
     }
 }
 
@@ -169,219 +181,180 @@ function closeModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.style.display = 'none';
-        document.body.style.overflow = 'auto';
+        document.body.classList.remove('modal-open');
     }
 }
 
-// Выход
 function logout() {
     sessionStorage.clear();
-    showNotification('Вы вышли из системы', 'success');
-    setTimeout(() => {
-        window.location.href = 'index.html';
-    }, 1000);
+    window.location.href = 'index.html';
 }
 
-// Форматирование
 function formatDate(dateString) {
-    if (!dateString) return '—';
-    try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return dateString;
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        return `${day}.${month}.${year}`;
-    } catch (error) {
+    if (!dateString) {
+        return '-';
+    }
+
+    const date = new Date(`${dateString}T00:00:00`);
+    if (Number.isNaN(date.getTime())) {
         return dateString;
     }
+
+    return `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${date.getFullYear()}`;
 }
 
 function formatDateTime(dateString) {
-    if (!dateString) return '—';
-    try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return dateString;
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${day}.${month}.${year} ${hours}:${minutes}`;
-    } catch (error) {
+    if (!dateString) {
+        return '-';
+    }
+
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) {
         return dateString;
     }
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    return `${day}.${month}.${year} ${hours}:${minutes}`;
 }
 
 function getStatusText(status) {
-    const statusMap = {
-        'new': 'Новая',
-        'in_progress': 'Идет обучение',
-        'completed': 'Обучение завершено'
+    const statuses = {
+        new: 'Новая',
+        in_progress: 'Идет обучение',
+        completed: 'Обучение завершено'
     };
-    return statusMap[status] || status;
+
+    return statuses[status] || status;
+}
+
+function getReviewStatusText(status) {
+    const statuses = {
+        pending: 'На модерации',
+        approved: 'Опубликован',
+        rejected: 'Отклонен'
+    };
+
+    return statuses[status] || status;
 }
 
 function getPaymentMethodText(method) {
-    const methodMap = {
-        'cash': 'Наличными',
-        'transfer': 'Перевод по номеру телефона'
-    };
-    return methodMap[method] || method;
+    return method === 'cash' ? 'Наличными' : method === 'transfer' ? 'Переводом' : method;
 }
 
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-// Адаптивная функция для определения типа устройства
-function getDeviceType() {
-    const width = window.innerWidth;
-    if (width <= 768) return 'mobile';
-    if (width <= 1024) return 'tablet';
-    return 'desktop';
-}
-
-// Адаптивная навигация
-function initAdaptiveNavigation() {
-    const nav = document.querySelector('.nav-menu');
-    if (!nav) return;
-    
-    const deviceType = getDeviceType();
-    
-    if (deviceType === 'mobile') {
-        // На мобильных добавляем скролл для навигации
-        nav.style.overflowX = 'auto';
-        nav.style.whiteSpace = 'nowrap';
-        nav.style.display = 'flex';
-        nav.style.flexWrap = 'nowrap';
-        nav.style.justifyContent = 'flex-start';
-        
-        const navLinks = document.querySelectorAll('.nav-link');
-        navLinks.forEach(link => {
-            link.style.flex = 'none';
-            link.style.padding = '12px 20px';
-        });
-    } else {
-        nav.style.overflowX = 'visible';
-        nav.style.whiteSpace = 'normal';
-        nav.style.display = 'flex';
-        nav.style.flexWrap = 'wrap';
-        nav.style.justifyContent = 'center';
+function escapeHtml(value) {
+    if (value === null || value === undefined) {
+        return '';
     }
+
+    const element = document.createElement('div');
+    element.textContent = String(value);
+    return element.innerHTML;
 }
 
-// Инициализация
+function checkAuth() {
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+    const publicPages = ['index.html', 'login.html', 'register.html', 'reviews.html'];
+
+    if (publicPages.includes(currentPage)) {
+        return true;
+    }
+
+    const userId = sessionStorage.getItem('user_id');
+    if (!userId) {
+        window.location.href = 'login.html';
+        return false;
+    }
+
+    if (currentPage === 'admin.html' && sessionStorage.getItem('user_role') !== 'admin') {
+        window.location.href = 'applications.html';
+        return false;
+    }
+
+    return true;
+}
+
+function initPhoneMasks() {
+    const inputs = document.querySelectorAll('input[type="tel"], input[name="phone"]');
+
+    inputs.forEach((input) => {
+        input.addEventListener('input', (event) => {
+            let value = event.target.value.replace(/\D/g, '');
+            if (value.startsWith('7')) {
+                value = `8${value.slice(1)}`;
+            }
+            if (!value.startsWith('8')) {
+                value = `8${value}`;
+            }
+
+            value = value.slice(0, 11);
+
+            let masked = '8';
+            if (value.length > 1) {
+                masked += `(${value.slice(1, 4)}`;
+            }
+            if (value.length >= 4) {
+                masked += `)${value.slice(4, 7)}`;
+            }
+            if (value.length >= 7) {
+                masked += `-${value.slice(7, 9)}`;
+            }
+            if (value.length >= 9) {
+                masked += `-${value.slice(9, 11)}`;
+            }
+
+            event.target.value = masked;
+        });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     if (document.querySelector('.slider')) {
         initSlider();
     }
-    
-    initAdaptiveNavigation();
-    
-    // Адаптация при изменении размера окна
-    window.addEventListener('resize', () => {
-        initAdaptiveNavigation();
-    });
-    
-    // Закрытие модальных окон
-    window.onclick = (event) => {
-        if (event.target.classList && event.target.classList.contains('modal')) {
-            event.target.style.display = 'none';
-            document.body.style.overflow = 'auto';
-        }
-    };
-    
+
+    initPhoneMasks();
+
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
-            const modals = document.querySelectorAll('.modal');
-            modals.forEach(modal => {
+            document.querySelectorAll('.modal').forEach((modal) => {
                 if (modal.style.display === 'flex') {
                     modal.style.display = 'none';
-                    document.body.style.overflow = 'auto';
                 }
             });
+            document.body.classList.remove('modal-open');
         }
     });
-    
-    // Маски ввода
-    const phoneInputs = document.querySelectorAll('input[type="tel"], input[name="phone"]');
-    phoneInputs.forEach(input => {
-        input.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length > 0) {
-                if (value.length <= 1) value = '8';
-                else if (value.length <= 4) value = `8(${value.slice(1,4)}`;
-                else if (value.length <= 7) value = `8(${value.slice(1,4)})${value.slice(4,7)}`;
-                else if (value.length <= 9) value = `8(${value.slice(1,4)})${value.slice(4,7)}-${value.slice(7,9)}`;
-                else value = `8(${value.slice(1,4)})${value.slice(4,7)}-${value.slice(7,9)}-${value.slice(9,11)}`;
-            }
-            e.target.value = value.slice(0, 16);
-        });
-    });
-    
-    const dateInputs = document.querySelectorAll('input[name="start_date"], #start_date');
-    dateInputs.forEach(input => {
-        input.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length >= 2) {
-                value = value.slice(0,2) + '.' + value.slice(2);
-            }
-            if (value.length >= 5) {
-                value = value.slice(0,5) + '.' + value.slice(5,9);
-            }
-            e.target.value = value.slice(0,10);
-        });
+
+    window.addEventListener('click', (event) => {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = 'none';
+            document.body.classList.remove('modal-open');
+        }
     });
 });
 
-// Проверка авторизации
-function checkAuth() {
-    const userId = sessionStorage.getItem('user_id');
-    const publicPages = ['index.html', 'login.html', 'register.html'];
-    const currentPage = window.location.pathname.split('/').pop();
-    
-    if (!userId && !publicPages.includes(currentPage)) {
-        showNotification('Пожалуйста, авторизуйтесь', 'error');
-        setTimeout(() => {
-            window.location.href = 'login.html';
-        }, 1500);
-        return false;
-    }
-    
-    if (currentPage === 'admin.html') {
-        const userRole = sessionStorage.getItem('user_role');
-        if (userRole !== 'admin') {
-            showNotification('Доступ запрещен', 'error');
-            setTimeout(() => {
-                window.location.href = 'applications.html';
-            }, 1500);
-            return false;
-        }
-    }
-    
-    return true;
-}
-
-// Запуск проверки
-if (!['index.html', 'login.html', 'register.html'].includes(window.location.pathname.split('/').pop())) {
+if (!['index.html', 'login.html', 'register.html', 'reviews.html'].includes(window.location.pathname.split('/').pop() || 'index.html')) {
     checkAuth();
 }
 
-// Глобальные функции
+window.FormValidator = FormValidator;
 window.apiRequest = apiRequest;
 window.showNotification = showNotification;
+window.clearFieldErrors = clearFieldErrors;
+window.applyFieldErrors = applyFieldErrors;
 window.openModal = openModal;
 window.closeModal = closeModal;
 window.logout = logout;
 window.formatDate = formatDate;
 window.formatDateTime = formatDateTime;
 window.getStatusText = getStatusText;
+window.getReviewStatusText = getReviewStatusText;
 window.getPaymentMethodText = getPaymentMethodText;
 window.escapeHtml = escapeHtml;
-window.FormValidator = FormValidator;
 window.changeSlide = changeSlide;
 window.goToSlide = goToSlide;

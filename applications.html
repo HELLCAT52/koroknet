@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Мои заявки - Корочки.есть</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
@@ -23,180 +23,250 @@
         <nav class="nav-menu">
             <a href="applications.html" class="nav-link active">Мои заявки</a>
             <a href="create-application.html" class="nav-link">Новая заявка</a>
+            <a href="reviews.html" class="nav-link">Отзывы</a>
         </nav>
 
-        <div class="content">
+        <section class="content">
             <div class="applications-header">
-                <h2>Мои заявки на обучение</h2>
-                <button class="btn-refresh" onclick="loadApplications()">⟳ Обновить</button>
+                <h2>Мои заявки</h2>
+                <button type="button" class="btn-refresh" onclick="reloadAll()">Обновить</button>
             </div>
-
             <div id="applicationsList" class="applications-list">
-                <div class="loading">Загрузка...</div>
+                <div class="loading">Загрузка заявок...</div>
             </div>
-        </div>
+        </section>
+
+        <section class="content" style="padding-top:0;">
+            <div class="section-header">
+                <h2>Мои отзывы</h2>
+            </div>
+            <div id="myReviewsList" class="my-reviews-list">
+                <div class="loading">Загрузка отзывов...</div>
+            </div>
+        </section>
     </div>
 
-    <!-- Модальное окно для отзыва -->
     <div id="reviewModal" class="modal">
         <div class="modal-content">
-            <span class="close" onclick="closeModal('reviewModal')">&times;</span>
+            <button type="button" class="close" onclick="closeModal('reviewModal')">&times;</button>
             <h3>Оставить отзыв</h3>
-            <form id="reviewForm">
-                <input type="hidden" id="reviewApplicationId">
+            <form id="reviewForm" novalidate>
+                <input type="hidden" id="reviewApplicationId" name="application_id">
+
                 <div class="form-group">
-                    <label for="rating">Оценка</label>
-                    <div class="rating-stars">
-                        <span class="star" data-rating="1">★</span>
-                        <span class="star" data-rating="2">★</span>
-                        <span class="star" data-rating="3">★</span>
-                        <span class="star" data-rating="4">★</span>
-                        <span class="star" data-rating="5">★</span>
+                    <label>Оценка</label>
+                    <div class="rating-stars" id="ratingStars">
+                        <button class="star active" type="button" data-rating="1">★</button>
+                        <button class="star active" type="button" data-rating="2">★</button>
+                        <button class="star active" type="button" data-rating="3">★</button>
+                        <button class="star active" type="button" data-rating="4">★</button>
+                        <button class="star active" type="button" data-rating="5">★</button>
                     </div>
-                    <input type="hidden" id="rating" value="5">
+                    <input type="hidden" id="rating" name="rating" value="5">
+                    <div class="error-message" id="ratingError">Оценка должна быть от 1 до 5</div>
                 </div>
+
                 <div class="form-group">
-                    <label for="reviewContent">Ваш отзыв</label>
-                    <textarea id="reviewContent" rows="5" required placeholder="Поделитесь впечатлениями о курсе..."></textarea>
+                    <label for="content">Текст отзыва</label>
+                    <textarea id="content" name="content" rows="5" placeholder="Опишите ваш опыт обучения" required></textarea>
+                    <div class="error-message" id="contentError">Отзыв должен содержать минимум 20 символов</div>
                 </div>
-                <button type="submit" class="btn-submit">Отправить отзыв</button>
+
+                <button type="submit" class="btn-submit">Отправить на модерацию</button>
             </form>
         </div>
     </div>
 
     <script src="js/main.js"></script>
     <script>
-        let currentApplications = [];
+        const userId = Number(sessionStorage.getItem('user_id'));
+        const applicationsList = document.getElementById('applicationsList');
+        const myReviewsList = document.getElementById('myReviewsList');
+        const reviewForm = document.getElementById('reviewForm');
 
-        // Проверка авторизации
-        if (!sessionStorage.getItem('user_id')) {
-            window.location.href = 'login.html';
-        }
+        let applications = [];
 
-        document.getElementById('userName').textContent = `Привет, ${sessionStorage.getItem('full_name') || sessionStorage.getItem('username')}!`;
-
-        // Загрузка заявок
-        async function loadApplications() {
-            const userId = sessionStorage.getItem('user_id');
-            
-            try {
-                const result = await apiRequest(`api/applications.php?user_id=${userId}`, 'GET');
-                
-                if (result.success) {
-                    currentApplications = result.data;
-                    renderApplications(result.data);
-                } else {
-                    showNotification('Ошибка загрузки заявок', 'error');
-                }
-            } catch (error) {
-                showNotification('Ошибка подключения', 'error');
-            }
-        }
-
-        // Отображение заявок
-        function renderApplications(applications) {
-            const container = document.getElementById('applicationsList');
-            
-            if (!applications || applications.length === 0) {
-                container.innerHTML = `
+        function renderApplications(items) {
+            if (!items.length) {
+                applicationsList.innerHTML = `
                     <div class="empty-state">
-                        <div class="empty-icon">📋</div>
-                        <p>У вас пока нет заявок</p>
-                        <a href="create-application.html" class="btn-primary">Создать заявку</a>
+                        У вас пока нет заявок.<br>
+                        <a href="create-application.html">Создать первую заявку</a>
                     </div>
                 `;
                 return;
             }
-            
-            container.innerHTML = applications.map(app => `
-                <div class="application-card fade-in">
-                    <div class="application-header">
-                        <h3>${escapeHtml(app.course_name)}</h3>
-                        <span class="status-badge status-${app.status}">
-                            ${getStatusText(app.status)}
-                        </span>
+
+            applicationsList.innerHTML = items.map((app) => {
+                const canCreateReview = app.status === 'completed' && !app.review_id;
+                const reviewBlock = app.review_id ? `
+                    <div class="review-info">
+                        <div class="review-status-badge review-status-${escapeHtml(app.review_status || 'pending')}">${getReviewStatusText(app.review_status || 'pending')}</div>
+                        <p><strong>Оценка:</strong> ${Number(app.review_rating) || 0}/5</p>
+                        <p>${escapeHtml(app.review_content || '')}</p>
+                        ${app.review_moderation_note ? `<p><strong>Комментарий модератора:</strong> ${escapeHtml(app.review_moderation_note)}</p>` : ''}
                     </div>
-                    <div class="application-details">
-                        <p><strong>Дата начала:</strong> ${formatDate(app.start_date)}</p>
-                        <p><strong>Способ оплаты:</strong> ${getPaymentMethodText(app.payment_method)}</p>
-                        <p><strong>Дата подачи:</strong> ${formatDateTime(app.created_at)}</p>
+                ` : '';
+
+                return `
+                    <article class="application-card">
+                        <div class="application-header">
+                            <h3>${escapeHtml(app.course_name)}</h3>
+                            <span class="status-badge status-${escapeHtml(app.status)}">${getStatusText(app.status)}</span>
+                        </div>
+                        <div class="application-details">
+                            <p><strong>Дата начала:</strong> ${escapeHtml(app.start_date_formatted || formatDate(app.start_date))}</p>
+                            <p><strong>Способ оплаты:</strong> ${escapeHtml(getPaymentMethodText(app.payment_method))}</p>
+                            <p><strong>Создана:</strong> ${escapeHtml(app.created_at_formatted || formatDateTime(app.created_at))}</p>
+                        </div>
+                        <div class="application-actions">
+                            ${canCreateReview ? `<button type="button" class="btn-review" onclick="openReviewModal(${Number(app.id)})">Оставить отзыв</button>` : ''}
+                        </div>
+                        ${reviewBlock}
+                    </article>
+                `;
+            }).join('');
+        }
+
+        function renderMyReviews(items) {
+            if (!items.length) {
+                myReviewsList.innerHTML = '<div class="empty-state">Вы пока не оставляли отзывы.</div>';
+                return;
+            }
+
+            myReviewsList.innerHTML = items.map((review) => `
+                <article class="review-card">
+                    <div class="section-header">
+                        <h3>${escapeHtml(review.course_name)}</h3>
+                        <span class="review-status-badge review-status-${escapeHtml(review.status || 'pending')}">${getReviewStatusText(review.status || 'pending')}</span>
                     </div>
-                    <div class="application-actions">
-                        ${app.status === 'completed' ? `
-                            <button class="btn-review" onclick="openReviewModal(${app.id})">
-                                ✍️ Оставить отзыв
-                            </button>
-                        ` : ''}
-                        ${app.review ? `
-                            <div class="review-info">
-                                <strong>Ваш отзыв:</strong> ${escapeHtml(app.review)}
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
+                    <p class="review-rating">Оценка: ${Number(review.rating) || 0}/5</p>
+                    <p>${escapeHtml(review.content || '')}</p>
+                    ${review.moderation_note ? `<p><strong>Комментарий модератора:</strong> ${escapeHtml(review.moderation_note)}</p>` : ''}
+                    <p class="text-muted">Отправлен: ${formatDateTime(review.created_at)}</p>
+                </article>
             `).join('');
         }
 
-        // Открытие модального окна отзыва
-        function openReviewModal(applicationId) {
-            const application = currentApplications.find(app => app.id === applicationId);
-            if (application && application.status === 'completed') {
-                document.getElementById('reviewApplicationId').value = applicationId;
-                openModal('reviewModal');
+        async function loadApplications() {
+            applicationsList.innerHTML = '<div class="loading">Загрузка заявок...</div>';
+            const result = await apiRequest(`api/applications.php?user_id=${userId}`, 'GET');
+            applications = result.data || [];
+            renderApplications(applications);
+        }
+
+        async function loadMyReviews() {
+            myReviewsList.innerHTML = '<div class="loading">Загрузка отзывов...</div>';
+            const result = await apiRequest(`api/reviews.php?user_id=${userId}`, 'GET');
+            renderMyReviews(result.data || []);
+        }
+
+        async function reloadAll() {
+            const [applicationsResult, reviewsResult] = await Promise.allSettled([
+                loadApplications(),
+                loadMyReviews()
+            ]);
+
+            if (applicationsResult.status === 'fulfilled' && reviewsResult.status === 'fulfilled') {
+                showNotification('Данные обновлены');
+                return;
+            }
+
+            if (applicationsResult.status === 'rejected') {
+                showNotification(applicationsResult.reason?.payload?.message || 'Не удалось загрузить заявки', 'error');
+            }
+
+            if (reviewsResult.status === 'rejected') {
+                showNotification(reviewsResult.reason?.payload?.message || 'Не удалось загрузить отзывы', 'error');
             }
         }
 
-        // Отправка отзыва
-        document.getElementById('reviewForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const applicationId = document.getElementById('reviewApplicationId').value;
-            const rating = document.getElementById('rating').value;
-            const content = document.getElementById('reviewContent').value;
-            
-            if (!content.trim()) {
-                showNotification('Пожалуйста, напишите отзыв', 'error');
+        function openReviewModal(applicationId) {
+            const app = applications.find((item) => Number(item.id) === Number(applicationId));
+            if (!app || app.status !== 'completed') {
+                showNotification('Отзыв можно оставить только по завершенной заявке', 'error');
                 return;
             }
-            
-            try {
-                const result = await apiRequest('api/reviews.php', 'POST', {
-                    application_id: applicationId,
-                    rating: rating,
-                    content: content
-                });
-                
-                if (result.success) {
-                    showNotification('Спасибо за отзыв!', 'success');
-                    closeModal('reviewModal');
-                    document.getElementById('reviewContent').value = '';
-                    loadApplications(); // Обновляем список заявок
-                } else {
-                    showNotification(result.message || 'Ошибка при отправке отзыва', 'error');
-                }
-            } catch (error) {
-                showNotification('Ошибка подключения', 'error');
-            }
-        });
 
-        // Звездочки рейтинга
-        document.querySelectorAll('.star').forEach(star => {
-            star.addEventListener('click', function() {
-                const rating = this.getAttribute('data-rating');
-                document.getElementById('rating').value = rating;
-                
-                document.querySelectorAll('.star').forEach(s => {
-                    if (s.getAttribute('data-rating') <= rating) {
-                        s.classList.add('active');
-                    } else {
-                        s.classList.remove('active');
-                    }
-                });
+            reviewForm.reset();
+            clearFieldErrors(reviewForm);
+            document.getElementById('reviewApplicationId').value = String(applicationId);
+            document.getElementById('rating').value = '5';
+            setRatingStars(5);
+            openModal('reviewModal');
+        }
+
+        function setRatingStars(rating) {
+            document.querySelectorAll('#ratingStars .star').forEach((star) => {
+                const starRating = Number(star.dataset.rating);
+                star.classList.toggle('active', starRating <= rating);
+            });
+        }
+
+        document.querySelectorAll('#ratingStars .star').forEach((star) => {
+            star.addEventListener('click', () => {
+                const rating = Number(star.dataset.rating);
+                document.getElementById('rating').value = String(rating);
+                setRatingStars(rating);
             });
         });
 
-        // Загрузка при открытии страницы
-        loadApplications();
+        reviewForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            clearFieldErrors(reviewForm);
+
+            const payload = {
+                application_id: Number(document.getElementById('reviewApplicationId').value),
+                user_id: userId,
+                rating: Number(document.getElementById('rating').value),
+                content: document.getElementById('content').value.trim()
+            };
+
+            const localErrors = {};
+            if (payload.rating < 1 || payload.rating > 5) {
+                localErrors.rating = 'Оценка должна быть от 1 до 5';
+            }
+            if (payload.content.length < 20) {
+                localErrors.content = 'Отзыв должен содержать минимум 20 символов';
+            }
+
+            if (Object.keys(localErrors).length > 0) {
+                applyFieldErrors(reviewForm, localErrors);
+                return;
+            }
+
+            const submitButton = reviewForm.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Отправка...';
+
+            try {
+                const result = await apiRequest('api/reviews.php', 'POST', payload);
+                showNotification(result.message || 'Отзыв отправлен');
+                closeModal('reviewModal');
+                await reloadAll();
+            } catch (error) {
+                if (error.payload?.field_errors) {
+                    applyFieldErrors(reviewForm, error.payload.field_errors);
+                }
+                showNotification(error.payload?.message || 'Не удалось отправить отзыв', 'error');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Отправить на модерацию';
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!Number.isInteger(userId) || userId < 1) {
+                window.location.href = 'login.html';
+                return;
+            }
+            const fullName = sessionStorage.getItem('full_name') || sessionStorage.getItem('username') || 'Пользователь';
+            document.getElementById('userName').textContent = `Пользователь: ${fullName}`;
+            reloadAll();
+        });
+
+        window.openReviewModal = openReviewModal;
+        window.reloadAll = reloadAll;
     </script>
 </body>
 </html>

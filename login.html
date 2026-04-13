@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Авторизация - Корочки.есть</title>
+    <title>Вход - Корочки.есть</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
@@ -14,99 +14,86 @@
                 <img src="images/image01.webp" alt="Корочки.есть" class="logo-img">
                 <h1>Корочки.есть</h1>
             </div>
-            <p class="tagline">Войдите в свой аккаунт</p>
+            <p class="tagline">Вход в личный кабинет</p>
         </header>
 
-        <div class="form-container fade-in">
-            <form id="loginForm">
+        <div class="form-container">
+            <h2>Авторизация</h2>
+            <form id="loginForm" novalidate>
                 <div class="form-group">
                     <label for="username">Логин</label>
-                    <input type="text" id="username" name="username" required autocomplete="username">
-                    <div class="error-message" id="usernameError">Пожалуйста, введите логин</div>
+                    <input type="text" id="username" name="username" autocomplete="username" required>
+                    <div class="error-message" id="usernameError">Введите логин</div>
                 </div>
 
                 <div class="form-group">
                     <label for="password">Пароль</label>
-                    <input type="password" id="password" name="password" required autocomplete="current-password">
-                    <div class="error-message" id="passwordError">Пожалуйста, введите пароль</div>
+                    <input type="password" id="password" name="password" autocomplete="current-password" required>
+                    <div class="error-message" id="passwordError">Введите пароль</div>
                 </div>
 
-                <button type="submit" class="btn-submit">Войти</button>
+                <button class="btn-submit" type="submit">Войти</button>
             </form>
 
-            <div style="text-align: center; margin-top: 20px;">
-                <a href="register.html" class="auth-link">Еще не зарегистрированы? Регистрация</a>
-            </div>
+            <p style="margin-top:14px;" class="text-muted">
+                Нет аккаунта? <a href="register.html">Зарегистрируйтесь</a>
+            </p>
         </div>
     </div>
 
     <script src="js/main.js"></script>
     <script>
-        // Проверка наличия сохраненной сессии
         if (sessionStorage.getItem('user_id')) {
-            const userRole = sessionStorage.getItem('user_role');
-            if (userRole === 'admin') {
-                window.location.href = 'admin.html';
-            } else {
-                window.location.href = 'applications.html';
-            }
+            window.location.href = sessionStorage.getItem('user_role') === 'admin' ? 'admin.html' : 'applications.html';
         }
 
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            let isValid = true;
-            const username = document.getElementById('username').value;
+        const loginForm = document.getElementById('loginForm');
+
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            clearFieldErrors(loginForm);
+
+            const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
-            
-            if (!username.trim()) {
-                document.getElementById('usernameError').style.display = 'block';
-                document.getElementById('username').classList.add('error');
-                isValid = false;
-            } else {
-                document.getElementById('usernameError').style.display = 'none';
-                document.getElementById('username').classList.remove('error');
+            const localErrors = {};
+
+            if (!username) {
+                localErrors.username = 'Введите логин';
             }
-            
-            if (!password.trim()) {
-                document.getElementById('passwordError').style.display = 'block';
-                document.getElementById('password').classList.add('error');
-                isValid = false;
-            } else {
-                document.getElementById('passwordError').style.display = 'none';
-                document.getElementById('password').classList.remove('error');
+
+            if (!password) {
+                localErrors.password = 'Введите пароль';
             }
-            
-            if (isValid) {
-                try {
-                    const result = await apiRequest('api/login.php', 'POST', {
-                        username, password
-                    });
-                    
-                    if (result.success) {
-                        // Сохраняем данные пользователя в sessionStorage
-                        sessionStorage.setItem('user_id', result.user_id);
-                        sessionStorage.setItem('username', result.username);
-                        sessionStorage.setItem('user_role', result.role);
-                        sessionStorage.setItem('full_name', result.full_name);
-                        
-                        showNotification('Вход выполнен успешно!', 'success');
-                        
-                        setTimeout(() => {
-                            if (result.role === 'admin') {
-                                window.location.href = 'admin.html';
-                            } else {
-                                window.location.href = 'applications.html';
-                            }
-                        }, 1000);
-                    } else {
-                        showNotification(result.message || 'Неверный логин или пароль', 'error');
-                        document.getElementById('password').value = '';
-                        document.getElementById('password').focus();
-                    }
-                } catch (error) {
-                    showNotification('Ошибка подключения к серверу', 'error');
+
+            if (Object.keys(localErrors).length > 0) {
+                applyFieldErrors(loginForm, localErrors);
+                return;
+            }
+
+            const submitButton = loginForm.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Входим...';
+
+            try {
+                const result = await apiRequest('api/login.php', 'POST', { username, password });
+
+                sessionStorage.setItem('user_id', String(result.user_id));
+                sessionStorage.setItem('username', result.username);
+                sessionStorage.setItem('full_name', result.full_name || '');
+                sessionStorage.setItem('user_role', result.role || 'user');
+
+                showNotification('Вход выполнен успешно');
+                setTimeout(() => {
+                    window.location.href = result.role === 'admin' ? 'admin.html' : 'applications.html';
+                }, 600);
+            } catch (error) {
+                if (error.payload?.field_errors) {
+                    applyFieldErrors(loginForm, error.payload.field_errors);
                 }
+                showNotification(error.payload?.message || 'Не удалось выполнить вход', 'error');
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Войти';
             }
         });
     </script>

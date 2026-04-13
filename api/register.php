@@ -1,103 +1,91 @@
 <?php
-// Включаем отображение ошибок для отладки
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
-// Устанавливаем заголовки
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+require_once __DIR__ . '/common/bootstrap.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../models/User.php';
 
-// Обработка preflight запроса
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
+initApi(['POST']);
+enforceRateLimit('register', 40, 300);
 
 try {
-    // Получаем абсолютный путь к корню проекта
-    $rootPath = realpath(__DIR__ . '/..');
-    
-    // Формируем пути к файлам
-    $configPath = $rootPath . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'database.php';
-    $modelPath = $rootPath . DIRECTORY_SEPARATOR . 'models' . DIRECTORY_SEPARATOR . 'User.php';
-    
-    // Проверяем существование файлов
-    if (!file_exists($configPath)) {
-        throw new Exception("Config file not found: " . $configPath);
+    $data = getJsonInput();
+
+    $username = sanitizeString($data['username'] ?? '', 50);
+    $password = (string)($data['password'] ?? '');
+    $fullName = sanitizeString($data['full_name'] ?? '', 100);
+    $phone = sanitizeString($data['phone'] ?? '', 20);
+    $email = sanitizeString($data['email'] ?? '', 100);
+
+    $fieldErrors = [];
+
+    if ($username === '') {
+        $fieldErrors['username'] = 'Введите логин';
+    } elseif (!preg_match('/^[A-Za-z0-9_\-.]{6,50}$/', $username)) {
+        $fieldErrors['username'] = 'Логин должен содержать минимум 6 символов (латиница/цифры/._-)';
     }
-    
-    if (!file_exists($modelPath)) {
-        throw new Exception("Model file not found: " . $modelPath);
+
+    if ($password === '') {
+        $fieldErrors['password'] = 'Введите пароль';
+    } elseif (strlen($password) < 8) {
+        $fieldErrors['password'] = 'Пароль должен содержать минимум 8 символов';
+    } elseif (!preg_match('/[A-Za-z]/', $password) || !preg_match('/\d/', $password)) {
+        $fieldErrors['password'] = 'Пароль должен содержать хотя бы одну букву и одну цифру';
     }
-    
-    // Подключаем файлы
-    require_once $configPath;
-    require_once $modelPath;
-    
-    // Подключаемся к базе данных
-    $database = new Database();
-    $db = $database->getConnection();
-    
-    if (!$db) {
-        throw new Exception("Database connection failed");
+
+    if ($fullName === '') {
+        $fieldErrors['full_name'] = 'Введите ФИО';
+    } elseif (!preg_match('/^[\p{L}\s\-]{2,100}$/u', $fullName)) {
+        $fieldErrors['full_name'] = 'ФИО может содержать только буквы, пробелы и дефис';
     }
-    
-    // Получаем данные
-    $rawData = file_get_contents("php://input");
-    $data = json_decode($rawData);
-    
-    if (!$data) {
-        echo json_encode([
-            "success" => false, 
-            "message" => "Invalid JSON data"
-        ]);
-        exit();
+
+    if ($phone === '') {
+        $fieldErrors['phone'] = 'Введите телефон';
+    } elseif (!preg_match('/^8\(\d{3}\)\d{3}-\d{2}-\d{2}$/', $phone)) {
+        $fieldErrors['phone'] = 'Телефон должен быть в формате 8(XXX)XXX-XX-XX';
     }
-    
-    // Проверяем обязательные поля
-    $required = ['username', 'password', 'full_name', 'phone', 'email'];
-    $missing = [];
-    
-    foreach ($required as $field) {
-        if (empty($data->$field)) {
-            $missing[] = $field;
-        }
+
+    if ($email === '') {
+        $fieldErrors['email'] = 'Введите email';
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $fieldErrors['email'] = 'Введите корректный email';
     }
-    
-    if (!empty($missing)) {
-        echo json_encode([
-            "success" => false, 
-            "message" => "Missing fields: " . implode(', ', $missing)
-        ]);
-        exit();
+
+    if (!empty($fieldErrors)) {
+        buildValidationError($fieldErrors);
     }
-    
-    // Создаем пользователя
+
+    $db = (new Database())->getConnection();
     $user = new User($db);
-    $user->username = trim($data->username);
-    $user->password = $data->password;
-    $user->full_name = trim($data->full_name);
-    $user->phone = trim($data->phone);
-    $user->email = trim($data->email);
-    
-    if($user->register()) {
-        echo json_encode([
-            "success" => true, 
-            "message" => "Пользователь успешно зарегистрирован"
-        ]);
-    } else {
-        echo json_encode([
-            "success" => false, 
-            "message" => "Пользователь с таким логином или email уже существует"
-        ]);
+    $user->username = $username;
+    $user->password = $password;
+    $user->full_name = $fullName;
+    $user->phone = $phone;
+    $user->email = $email;
+
+    $registerResult = $user->register();
+    if (!$registerResult['success']) {
+        $response = [
+            'success' => false,
+            'message' => $registerResult['message']
+        ];
+
+        if (!empty($registerResult['field'])) {
+            $response['field_errors'] = [
+                $registerResult['field'] => $registerResult['message']
+            ];
+        }
+
+        jsonResponse(409, $response);
     }
-    
-} catch (Exception $e) {
-    echo json_encode([
-        "success" => false, 
-        "message" => "Ошибка сервера: " . $e->getMessage()
+
+    jsonResponse(201, [
+        'success' => true,
+        'message' => 'Пользователь успешно зарегистрирован'
+    ]);
+} catch (Throwable $exception) {
+    error_log('Register API error: ' . $exception->getMessage());
+    jsonResponse(500, [
+        'success' => false,
+        'message' => 'Внутренняя ошибка сервера'
     ]);
 }
-?>

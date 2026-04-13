@@ -1,65 +1,67 @@
 <?php
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
 
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+require_once __DIR__ . '/common/bootstrap.php';
+require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../models/User.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
+initApi(['POST']);
+enforceRateLimit('login', 15, 60);
 
 try {
-    $rootPath = realpath(__DIR__ . '/..');
-    $configPath = $rootPath . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'database.php';
-    $modelPath = $rootPath . DIRECTORY_SEPARATOR . 'models' . DIRECTORY_SEPARATOR . 'User.php';
-    
-    if (!file_exists($configPath)) {
-        throw new Exception("Config file not found: " . $configPath);
+    $data = getJsonInput();
+
+    $username = sanitizeString($data['username'] ?? '', 50);
+    $password = (string)($data['password'] ?? '');
+
+    $fieldErrors = [];
+
+    if ($username === '') {
+        $fieldErrors['username'] = 'Введите логин';
+    } elseif (!preg_match('/^[A-Za-z0-9_\-.]{4,50}$/', $username)) {
+        $fieldErrors['username'] = 'Логин может содержать только латиницу, цифры, точку, дефис и подчеркивание';
     }
-    
-    require_once $configPath;
-    require_once $modelPath;
-    
-    $database = new Database();
-    $db = $database->getConnection();
-    
+
+    if ($password === '') {
+        $fieldErrors['password'] = 'Введите пароль';
+    }
+
+    if (!empty($fieldErrors)) {
+        buildValidationError($fieldErrors);
+    }
+
+    $db = (new Database())->getConnection();
     $user = new User($db);
-    
-    $data = json_decode(file_get_contents("php://input"));
-    
-    if(!empty($data->username) && !empty($data->password)) {
-        $user->username = $data->username;
-        $user->password = $data->password;
-        
-        if($user->login()) {
-            echo json_encode([
-                "success" => true,
-                "message" => "Вход выполнен успешно",
-                "user_id" => $user->id,
-                "username" => $user->username,
-                "full_name" => $user->full_name,
-                "role" => $user->role
-            ]);
-        } else {
-            echo json_encode([
-                "success" => false,
-                "message" => "Неверный логин или пароль"
-            ]);
+    $user->username = $username;
+    $user->password = $password;
+
+    $loginResult = $user->login();
+    if (!$loginResult['success']) {
+        $response = [
+            'success' => false,
+            'message' => $loginResult['message']
+        ];
+
+        if (!empty($loginResult['field'])) {
+            $response['field_errors'] = [
+                $loginResult['field'] => $loginResult['message']
+            ];
         }
-    } else {
-        echo json_encode([
-            "success" => false,
-            "message" => "Заполните все поля"
-        ]);
+
+        jsonResponse(401, $response);
     }
-} catch (Exception $e) {
-    echo json_encode([
-        "success" => false,
-        "message" => "Ошибка сервера: " . $e->getMessage()
+
+    jsonResponse(200, [
+        'success' => true,
+        'message' => 'Вход выполнен успешно',
+        'user_id' => $user->id,
+        'username' => $user->username,
+        'full_name' => $user->full_name,
+        'role' => $user->role
+    ]);
+} catch (Throwable $exception) {
+    error_log('Login API error: ' . $exception->getMessage());
+    jsonResponse(500, [
+        'success' => false,
+        'message' => 'Внутренняя ошибка сервера'
     ]);
 }
-?>

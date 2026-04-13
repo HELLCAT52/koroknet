@@ -1,28 +1,31 @@
 <?php
-class Database {
-    private $host = "localhost";
-    private $db_name = "koroki_portal";
-    private $username = "root";
-    private $password = "";
-    public $conn;
 
-    public function getConnection() {
-        $this->conn = null;
+class Database
+{
+    private string $host = 'localhost';
+    private string $db_name = 'koroki_portal';
+    private string $username = 'root';
+    private string $password = '';
+
+    public function getConnection(): PDO
+    {
         try {
-            $this->conn = new PDO(
-                "mysql:host=" . $this->host . ";dbname=" . $this->db_name . ";charset=utf8mb4",
+            $conn = new PDO(
+                'mysql:host=' . $this->host . ';dbname=' . $this->db_name . ';charset=utf8mb4',
                 $this->username,
-                $this->password
+                $this->password,
+                [
+                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                    PDO::ATTR_EMULATE_PREPARES => false
+                ]
             );
-            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-            $this->conn->exec("SET NAMES utf8mb4");
-            
-            return $this->conn;
-        } catch(PDOException $exception) {
-            error_log("Connection error: " . $exception->getMessage());
-            throw new Exception("Ошибка подключения к базе данных: " . $exception->getMessage());
+
+            $conn->exec('SET NAMES utf8mb4');
+            return $conn;
+        } catch (PDOException $exception) {
+            error_log('Database connection error: ' . $exception->getMessage());
+            throw new Exception('РћС€РёР±РєР° РїРѕРґРєР»СЋС‡РµРЅРёСЏ Рє Р±Р°Р·Рµ РґР°РЅРЅС‹С…');
         }
     }
 }
-?>

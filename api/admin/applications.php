@@ -1,49 +1,59 @@
 <?php
-header('Content-Type: application/json');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, PUT');
-header('Access-Control-Allow-Headers: Content-Type');
 
-require_once '../../config/database.php';
-require_once '../../models/Application.php';
+require_once __DIR__ . '/../common/bootstrap.php';
+require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../models/Application.php';
 
-$database = new Database();
-$db = $database->getConnection();
+initApi(['GET', 'PUT']);
 
-$application = new Application($db);
+try {
+    $db = (new Database())->getConnection();
+    $application = new Application($db);
 
-$method = $_SERVER['REQUEST_METHOD'];
-
-switch($method) {
-    case 'GET':
+    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         $result = $application->getAll();
-        echo json_encode([
-            "success" => true,
-            "data" => $result
+
+        jsonResponse(200, [
+            'success' => true,
+            'data' => $result
         ]);
-        break;
-        
-    case 'PUT':
-        $data = json_decode(file_get_contents("php://input"));
-        
-        if(!empty($data->id) && !empty($data->status)) {
-            if($application->updateStatus($data->id, $data->status)) {
-                echo json_encode([
-                    "success" => true,
-                    "message" => "Статус заявки обновлен"
-                ]);
-            } else {
-                echo json_encode([
-                    "success" => false,
-                    "message" => "Ошибка при обновлении статуса"
-                ]);
-            }
-        } else {
-            echo json_encode([
-                "success" => false,
-                "message" => "Недостаточно данных"
-            ]);
-        }
-        break;
+    }
+
+    enforceRateLimit('admin-update-status', 60, 60);
+
+    $data = getJsonInput();
+    $id = filter_var($data['id'] ?? null, FILTER_VALIDATE_INT);
+    $status = sanitizeString($data['status'] ?? '', 30);
+
+    $fieldErrors = [];
+
+    if (!$id || $id < 1) {
+        $fieldErrors['id'] = 'Укажите корректный ID заявки';
+    }
+
+    if (!in_array($status, ['new', 'in_progress', 'completed'], true)) {
+        $fieldErrors['status'] = 'Недопустимый статус';
+    }
+
+    if (!empty($fieldErrors)) {
+        buildValidationError($fieldErrors);
+    }
+
+    if (!$application->updateStatus((int) $id, $status)) {
+        jsonResponse(500, [
+            'success' => false,
+            'message' => 'Не удалось обновить статус'
+        ]);
+    }
+
+    jsonResponse(200, [
+        'success' => true,
+        'message' => 'Статус заявки обновлен'
+    ]);
+} catch (Throwable $exception) {
+    error_log('Admin applications API error: ' . $exception->getMessage());
+    jsonResponse(500, [
+        'success' => false,
+        'message' => 'Внутренняя ошибка сервера'
+    ]);
 }
-?>
