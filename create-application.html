@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Новая заявка - Корочки.есть</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <img src="images/image01.webp" alt="Корочки.есть" class="logo-img">
+                <h1>Корочки.есть</h1>
+            </div>
+            <div class="user-info">
+                <span id="userName"></span>
+                <button class="logout-btn" onclick="logout()">Выйти</button>
+            </div>
+        </header>
+
+        <nav class="nav-menu">
+            <a href="applications.html" class="nav-link">Мои заявки</a>
+            <a href="create-application.html" class="nav-link active">Новая заявка</a>
+        </nav>
+
+        <div class="form-container fade-in">
+            <h2>Создание заявки на обучение</h2>
+            
+            <form id="applicationForm">
+                <div class="form-group">
+                    <label for="course">Наименование курса *</label>
+                    <select id="course" name="course" required>
+                        <option value="">Выберите курс</option>
+                        <option value="1">Основы алгоритмизации и программирования</option>
+                        <option value="2">Основы веб-дизайна</option>
+                        <option value="3">Основы проектирования баз данных</option>
+                    </select>
+                    <div class="error-message" id="courseError">Выберите курс</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="start_date">Желаемая дата начала обучения *</label>
+                    <input type="text" id="start_date" name="start_date" placeholder="ДД.ММ.ГГГГ" required>
+                    <div class="error-message" id="dateError">Введите дату в формате ДД.ММ.ГГГГ</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Способ оплаты *</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="payment_method" value="cash" required>
+                            <span>Наличными</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="payment_method" value="transfer" required>
+                            <span>Перевод по номеру телефона</span>
+                        </label>
+                    </div>
+                    <div class="error-message" id="paymentError">Выберите способ оплаты</div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit">Отправить заявку</button>
+                    <button type="button" class="btn-secondary" onclick="window.location.href='applications.html'">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        // Проверка авторизации
+        if (!sessionStorage.getItem('user_id')) {
+            window.location.href = 'login.html';
+        }
+
+        document.getElementById('userName').textContent = `Привет, ${sessionStorage.getItem('full_name') || sessionStorage.getItem('username')}!`;
+
+        document.getElementById('applicationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            let isValid = true;
+            
+            const course = document.getElementById('course').value;
+            const startDate = document.getElementById('start_date').value;
+            const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+            
+            // Валидация курса
+            if (!course) {
+                document.getElementById('courseError').style.display = 'block';
+                document.getElementById('course').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('courseError').style.display = 'none';
+                document.getElementById('course').classList.remove('error');
+            }
+            
+            // Валидация даты
+            if (!FormValidator.validateDate(startDate)) {
+                document.getElementById('dateError').style.display = 'block';
+                document.getElementById('start_date').classList.add('error');
+                isValid = false;
+            } else {
+                // Проверка, что дата не в прошлом
+                const [day, month, year] = startDate.split('.');
+                const selectedDate = new Date(year, month - 1, day);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                if (selectedDate < today) {
+                    document.getElementById('dateError').textContent = 'Дата не может быть в прошлом';
+                    document.getElementById('dateError').style.display = 'block';
+                    document.getElementById('start_date').classList.add('error');
+                    isValid = false;
+                } else {
+                    document.getElementById('dateError').style.display = 'none';
+                    document.getElementById('start_date').classList.remove('error');
+                }
+            }
+            
+            // Валидация способа оплаты
+            if (!paymentMethod) {
+                document.getElementById('paymentError').style.display = 'block';
+                isValid = false;
+            } else {
+                document.getElementById('paymentError').style.display = 'none';
+            }
+            
+            if (isValid) {
+                const userId = sessionStorage.getItem('user_id');
+                const courseId = parseInt(course);
+                
+                try {
+                    const result = await apiRequest('api/applications.php', 'POST', {
+                        user_id: userId,
+                        course_id: courseId,
+                        start_date: startDate,
+                        payment_method: paymentMethod.value
+                    });
+                    
+                    if (result.success) {
+                        showNotification('Заявка успешно отправлена!', 'success');
+                        setTimeout(() => {
+                            window.location.href = 'applications.html';
+                        }, 2000);
+                    } else {
+                        showNotification(result.message || 'Ошибка при создании заявки', 'error');
+                    }
+                } catch (error) {
+                    showNotification('Ошибка подключения к серверу', 'error');
+                }
+            }
+        });
+        
+        // Маска для ввода даты
+        document.getElementById('start_date').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length >= 2) {
+                value = value.slice(0,2) + '.' + value.slice(2);
+            }
+            if (value.length >= 5) {
+                value = value.slice(0,5) + '.' + value.slice(5,9);
+            }
+            e.target.value = value.slice(0,10);
+        });
+    </script>
+</body>
+</html>

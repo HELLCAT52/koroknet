@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Корочки.есть - Портал онлайн курсов</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <img src="images/image01.webp" alt="Корочки.есть" class="logo-img" onerror="this.src='images/placeholder.png'">
+                <h1>Корочки.есть</h1>
+            </div>
+            <p class="tagline">Ваш путь к новым знаниям</p>
+            <div class="user-info" id="userInfo" style="display: none;">
+                <span id="userName"></span>
+                <button class="logout-btn" onclick="logout()">Выйти</button>
+            </div>
+        </header>
+
+        <!-- Слайдер -->
+        <div class="slider-container">
+            <div class="slider">
+                <div class="slide active">
+                    <img src="images/image06.jpg" alt="Образование" onerror="this.src='images/placeholder.jpg'">
+                    <div class="slide-caption">Качественное образование</div>
+                </div>
+                <div class="slide">
+                    <img src="images/image08.webp" alt="Курсы" onerror="this.src='images/placeholder.jpg'">
+                    <div class="slide-caption">Современные программы</div>
+                </div>
+                <div class="slide">
+                    <img src="images/image11.jpg" alt="Диплом" onerror="this.src='images/placeholder.jpg'">
+                    <div class="slide-caption">Официальные документы</div>
+                </div>
+                <div class="slide">
+                    <img src="images/image13.webp" alt="Поддержка" onerror="this.src='images/placeholder.jpg'">
+                    <div class="slide-caption">Профессиональные преподаватели</div>
+                </div>
+            </div>
+            <button class="slider-btn prev" onclick="changeSlide(-1)">❮</button>
+            <button class="slider-btn next" onclick="changeSlide(1)">❯</button>
+            <div class="slider-dots"></div>
+        </div>
+
+        <div class="auth-buttons" id="authButtons">
+            <button class="btn-primary" onclick="window.location.href='login.html'">Войти</button>
+            <button class="btn-secondary" onclick="window.location.href='register.html'">Регистрация</button>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">📚</div>
+                <h3>Онлайн курсы</h3>
+                <p>Учитесь в удобное время</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎓</div>
+                <h3>Документ об образовании</h3>
+                <p>Получите удостоверение</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💳</div>
+                <h3>Удобная оплата</h3>
+                <p>Наличные или перевод</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        // Проверка авторизации
+        if (sessionStorage.getItem('user_id')) {
+            document.getElementById('authButtons').style.display = 'none';
+            const userInfo = document.getElementById('userInfo');
+            userInfo.style.display = 'flex';
+            document.getElementById('userName').textContent = `Привет, ${sessionStorage.getItem('full_name') || sessionStorage.getItem('username')}!`;
+            
+            // Добавляем кнопку перехода в личный кабинет
+            const dashboardBtn = document.createElement('button');
+            dashboardBtn.className = 'btn-primary';
+            dashboardBtn.textContent = 'Мои заявки';
+            dashboardBtn.style.marginTop = '10px';
+            dashboardBtn.onclick = () => {
+                if (sessionStorage.getItem('user_role') === 'admin') {
+                    window.location.href = 'admin.html';
+                } else {
+                    window.location.href = 'applications.html';
+                }
+            };
+            document.querySelector('.auth-buttons').after(dashboardBtn);
+        }
+    </script>
+</body>
+</html>

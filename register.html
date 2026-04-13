@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Регистрация - Корочки.есть</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <img src="images/image01.webp" alt="Корочки.есть" class="logo-img">
+                <h1>Корочки.есть</h1>
+            </div>
+            <p class="tagline">Регистрация нового пользователя</p>
+        </header>
+
+        <div class="form-container">
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="username">Логин *</label>
+                    <input type="text" id="username" name="username" required>
+                    <div class="error-message" id="usernameError">Логин должен содержать минимум 6 символов (латиница и цифры)</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Пароль *</label>
+                    <input type="password" id="password" name="password" required>
+                    <div class="error-message" id="passwordError">Пароль должен содержать минимум 8 символов</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="full_name">ФИО *</label>
+                    <input type="text" id="full_name" name="full_name" required>
+                    <div class="error-message" id="fullNameError">ФИО должно содержать только буквы кириллицы и пробелы</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Телефон *</label>
+                    <input type="tel" id="phone" name="phone" placeholder="8(XXX)XXX-XX-XX" required>
+                    <div class="error-message" id="phoneError">Формат телефона: 8(XXX)XXX-XX-XX</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" name="email" required>
+                    <div class="error-message" id="emailError">Введите корректный email</div>
+                </div>
+
+                <button type="submit" class="btn-submit">Зарегистрироваться</button>
+            </form>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="login.html" class="auth-link">Уже есть аккаунт? Войти</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            let isValid = true;
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const fullName = document.getElementById('full_name').value;
+            const phone = document.getElementById('phone').value;
+            const email = document.getElementById('email').value;
+            
+            // Валидация
+            if (!FormValidator.validateLogin(username)) {
+                document.getElementById('usernameError').style.display = 'block';
+                document.getElementById('username').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('usernameError').style.display = 'none';
+                document.getElementById('username').classList.remove('error');
+            }
+            
+            if (!FormValidator.validatePassword(password)) {
+                document.getElementById('passwordError').style.display = 'block';
+                document.getElementById('password').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('passwordError').style.display = 'none';
+                document.getElementById('password').classList.remove('error');
+            }
+            
+            if (!FormValidator.validateFullName(fullName)) {
+                document.getElementById('fullNameError').style.display = 'block';
+                document.getElementById('full_name').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('fullNameError').style.display = 'none';
+                document.getElementById('full_name').classList.remove('error');
+            }
+            
+            if (!FormValidator.validatePhone(phone)) {
+                document.getElementById('phoneError').style.display = 'block';
+                document.getElementById('phone').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('phoneError').style.display = 'none';
+                document.getElementById('phone').classList.remove('error');
+            }
+            
+            if (!FormValidator.validateEmail(email)) {
+                document.getElementById('emailError').style.display = 'block';
+                document.getElementById('email').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('emailError').style.display = 'none';
+                document.getElementById('email').classList.remove('error');
+            }
+            
+            if (isValid) {
+                const result = await apiRequest('api/register.php', 'POST', {
+                    username, password, full_name: fullName, phone, email
+                });
+                
+                if (result.success) {
+                    showNotification('Регистрация успешна!', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    showNotification(result.message || 'Ошибка регистрации', 'error');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

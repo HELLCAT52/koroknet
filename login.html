@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Авторизация - Корочки.есть</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <img src="images/image01.webp" alt="Корочки.есть" class="logo-img">
+                <h1>Корочки.есть</h1>
+            </div>
+            <p class="tagline">Войдите в свой аккаунт</p>
+        </header>
+
+        <div class="form-container fade-in">
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Логин</label>
+                    <input type="text" id="username" name="username" required autocomplete="username">
+                    <div class="error-message" id="usernameError">Пожалуйста, введите логин</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Пароль</label>
+                    <input type="password" id="password" name="password" required autocomplete="current-password">
+                    <div class="error-message" id="passwordError">Пожалуйста, введите пароль</div>
+                </div>
+
+                <button type="submit" class="btn-submit">Войти</button>
+            </form>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="register.html" class="auth-link">Еще не зарегистрированы? Регистрация</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        // Проверка наличия сохраненной сессии
+        if (sessionStorage.getItem('user_id')) {
+            const userRole = sessionStorage.getItem('user_role');
+            if (userRole === 'admin') {
+                window.location.href = 'admin.html';
+            } else {
+                window.location.href = 'applications.html';
+            }
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            let isValid = true;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username.trim()) {
+                document.getElementById('usernameError').style.display = 'block';
+                document.getElementById('username').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('usernameError').style.display = 'none';
+                document.getElementById('username').classList.remove('error');
+            }
+            
+            if (!password.trim()) {
+                document.getElementById('passwordError').style.display = 'block';
+                document.getElementById('password').classList.add('error');
+                isValid = false;
+            } else {
+                document.getElementById('passwordError').style.display = 'none';
+                document.getElementById('password').classList.remove('error');
+            }
+            
+            if (isValid) {
+                try {
+                    const result = await apiRequest('api/login.php', 'POST', {
+                        username, password
+                    });
+                    
+                    if (result.success) {
+                        // Сохраняем данные пользователя в sessionStorage
+                        sessionStorage.setItem('user_id', result.user_id);
+                        sessionStorage.setItem('username', result.username);
+                        sessionStorage.setItem('user_role', result.role);
+                        sessionStorage.setItem('full_name', result.full_name);
+                        
+                        showNotification('Вход выполнен успешно!', 'success');
+                        
+                        setTimeout(() => {
+                            if (result.role === 'admin') {
+                                window.location.href = 'admin.html';
+                            } else {
+                                window.location.href = 'applications.html';
+                            }
+                        }, 1000);
+                    } else {
+                        showNotification(result.message || 'Неверный логин или пароль', 'error');
+                        document.getElementById('password').value = '';
+                        document.getElementById('password').focus();
+                    }
+                } catch (error) {
+                    showNotification('Ошибка подключения к серверу', 'error');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
